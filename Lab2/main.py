@@ -1,12 +1,13 @@
-import asyncio
 import json
-from typing import Set, Dict, List, Any, Optional
-from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect, Body
+from datetime import datetime
+from typing import Set, Dict, List, Optional
+
+from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
+from pydantic import BaseModel, field_validator
 from sqlalchemy import (create_engine, MetaData, Table, Column, Integer, String, Float, DateTime)
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.sql import select, insert, update, delete
-from datetime import datetime
-from pydantic import BaseModel, field_validator
+
 from config import (POSTGRES_HOST, POSTGRES_PORT, POSTGRES_DB, POSTGRES_USER, POSTGRES_PASSWORD)
 
 # SQLAlchemy setup
@@ -160,7 +161,7 @@ def list_processed_agent_data():
         data = db_agent_data.execute(query).fetchall()
         return data
     finally:
-        db.close()
+        db_agent_data.close()
 
 
 @app.put(
