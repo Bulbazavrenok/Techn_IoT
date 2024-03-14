@@ -2,12 +2,12 @@ import asyncio
 import json
 from typing import Set, Dict, List, Any, Optional
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect, Body
-from sqlalchemy import (create_engine,MetaData,Table,Column,Integer,String,Float,DateTime)
+from sqlalchemy import (create_engine, MetaData, Table, Column, Integer, String, Float, DateTime)
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.sql import select, insert, update, delete
 from datetime import datetime
 from pydantic import BaseModel, field_validator
-from config import (POSTGRES_HOST,POSTGRES_PORT,POSTGRES_DB,POSTGRES_USER,POSTGRES_PASSWORD)
+from config import (POSTGRES_HOST, POSTGRES_PORT, POSTGRES_DB, POSTGRES_USER, POSTGRES_PASSWORD)
 
 # SQLAlchemy setup
 DATABASE_URL = f"postgresql+psycopg2://{POSTGRES_USER}:{POSTGRES_PASSWORD}@{POSTGRES_HOST}:{POSTGRES_PORT}/{POSTGRES_DB}"
@@ -28,21 +28,25 @@ processed_agent_data = Table(
     Column("longitude", Float),
     Column("timestamp", DateTime))
 
+
 # FastAPI models
 class AccelerometerData(BaseModel):
     x: float
     y: float
     z: float
 
+
 class GpsData(BaseModel):
     latitude: float
     longitude: float
+
 
 class AgentData(BaseModel):
     user_id: int
     accelerometer: AccelerometerData
     gps: GpsData
     timestamp: datetime
+
     @classmethod
     @field_validator("timestamp", mode="before")
     def check_timestamp(cls, value):
@@ -55,23 +59,26 @@ class AgentData(BaseModel):
                 "Invalid timestamp format. Expected ISO 8601 format (YYYY-MM-DDTHH:MM:SSZ)."
             )
 
+
 class ProcessedAgentData(BaseModel):
     road_state: str
     agent_data: AgentData
 
+
 # SQLAlchemy model  #Database model
 class ProcessedAgentDataInDB(BaseModel):
     id: Optional[int] = -1
-    road_state: str 
+    road_state: str
     user_id: int
-    
+
     x: float
     y: float
     z: float
-    
+
     latitude: float
     longitude: float
     timestamp: datetime
+
 
 # FastAPI app setup
 app = FastAPI()
@@ -79,6 +86,7 @@ app = FastAPI()
 # WebSocket subscriptions
 subscriptions: Dict[int, Set[WebSocket]] = {}
 SessionLocal = sessionmaker(bind=engine)
+
 
 # FastAPI WebSocket endpoint
 @app.websocket("/ws/{user_id}")
@@ -93,11 +101,13 @@ async def websocket_endpoint(websocket: WebSocket, user_id: int):
     except WebSocketDisconnect:
         subscriptions[user_id].remove(websocket)
 
+
 # Function to send data to subscribed users
 async def send_data_to_subscribers(user_id: int, data):
     if user_id in subscriptions:
         for websocket in subscriptions[user_id]:
             await websocket.send_json(json.dumps(data))
+
 
 # FastAPI CRUDL endpoints
 @app.post("/processed_agent_data/")
@@ -111,7 +121,9 @@ async def create_processed_agent_data(data: List[ProcessedAgentData]):
             accelerometer = agent_data.accelerometer
             gps = agent_data.gps
             timestamp = agent_data.timestamp
-            query = insert(processed_agent_data).values(road_state=road_state,user_id=user_id,x=accelerometer.x,y=accelerometer.y,z=accelerometer.z,latitude=gps.latitude,longitude=gps.longitude,timestamp=timestamp)
+            query = insert(processed_agent_data).values(road_state=road_state, user_id=user_id, x=accelerometer.x,
+                                                        y=accelerometer.y, z=accelerometer.z, latitude=gps.latitude,
+                                                        longitude=gps.longitude, timestamp=timestamp)
             db_agent_data.execute(query)
             await send_data_to_subscribers(item.agent_data.user_id, item.json())
         db_agent_data.commit()
@@ -122,10 +134,10 @@ async def create_processed_agent_data(data: List[ProcessedAgentData]):
         db_agent_data.close()
     return {"message": "Success! Data created and sent to subscribers"}
 
+
 @app.get(
     "/processed_agent_data/{processed_agent_data_id}",
     response_model=ProcessedAgentDataInDB)
-    
 def read_processed_agent_data(processed_agent_data_id: int):
     try:
         db_agent_data = SessionLocal()
@@ -137,10 +149,10 @@ def read_processed_agent_data(processed_agent_data_id: int):
     finally:
         db_agent_data.close()
 
-@app.get(
-    "/processed_agent_data/", 
-    response_model=List[ProcessedAgentDataInDB])
 
+@app.get(
+    "/processed_agent_data/",
+    response_model=List[ProcessedAgentDataInDB])
 def list_processed_agent_data():
     try:
         db_agent_data = SessionLocal()
@@ -150,10 +162,10 @@ def list_processed_agent_data():
     finally:
         db.close()
 
+
 @app.put(
     "/processed_agent_data/{processed_agent_data_id}",
     response_model=ProcessedAgentDataInDB)
-    
 def update_processed_agent_data(processed_agent_data_id: int, data: ProcessedAgentData):
     try:
         db_agent_data = SessionLocal()
@@ -164,12 +176,14 @@ def update_processed_agent_data(processed_agent_data_id: int, data: ProcessedAge
         gps = agent_data.gps
         timestamp = agent_data.timestamp
         update_query = (update(processed_agent_data)
-            .where(processed_agent_data.c.id == processed_agent_data_id)
-            .values(road_state=road_state,user_id=user_id,x=accelerometer.x,y=accelerometer.y,z=accelerometer.z,latitude=gps.latitude,longitude=gps.longitude,timestamp=timestamp)
-        )
+                        .where(processed_agent_data.c.id == processed_agent_data_id)
+                        .values(road_state=road_state, user_id=user_id, x=accelerometer.x, y=accelerometer.y,
+                                z=accelerometer.z, latitude=gps.latitude, longitude=gps.longitude, timestamp=timestamp)
+                        )
         db_agent_data.execute(update_query)
         db_agent_data.commit()
-        updated_data = db_agent_data.execute(select(processed_agent_data).where(processed_agent_data.c.id == processed_agent_data_id)).fetchone()
+        updated_data = db_agent_data.execute(
+            select(processed_agent_data).where(processed_agent_data.c.id == processed_agent_data_id)).fetchone()
         return updated_data
     except Exception as e:
         db_agent_data.rollback()
@@ -177,14 +191,15 @@ def update_processed_agent_data(processed_agent_data_id: int, data: ProcessedAge
     finally:
         db_agent_data.close()
 
+
 @app.delete(
     "/processed_agent_data/{processed_agent_data_id}",
     response_model=ProcessedAgentDataInDB)
-    
 def delete_processed_agent_data(processed_agent_data_id: int):
     try:
         db_agent_data = SessionLocal()
-        delete_d = db_agent_data.execute(select(processed_agent_data).where(processed_agent_data.c.id == processed_agent_data_id)).fetchone()
+        delete_d = db_agent_data.execute(
+            select(processed_agent_data).where(processed_agent_data.c.id == processed_agent_data_id)).fetchone()
         if delete_d is None:
             raise HTTPException(status_code=404, detail="Data not found")
         delete_query = delete(processed_agent_data).where(processed_agent_data.c.id == processed_agent_data_id)
@@ -197,6 +212,8 @@ def delete_processed_agent_data(processed_agent_data_id: int):
     finally:
         db_agent_data.close()
 
+
 if __name__ == "__main__":
     import uvicorn
+
     uvicorn.run(app, host="127.0.0.1", port=8000)
