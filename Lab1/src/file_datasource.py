@@ -22,11 +22,12 @@ class FileDatasource:
             list_of_parking = next(self.parking_list_read)
             list_of_data.append(AggregatedData(Accelerometer(*next(self.accelerometer_list_reader)),Gps(*next(self.gps_list_reader)),Parking(list_of_parking[0], list_of_parking[1:]),datetime.now()))
         return list_of_data
-
+        
     def read_file(self, path: str):
         while True:
             file_reading = open(path)
             data_reader = reader(file_reading)
+            head_tabl = next(data_reader)
             for row in data_reader:
                 yield row
             file_reading.close()
