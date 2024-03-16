@@ -29,6 +29,20 @@ services:
       networks:
         mqtt_network:
 
+#  fake_agent2:
+#    container_name: agent_applevel2
+#    build: ../Lab1/
+#    depends_on:
+#      - mqtt
+#    environment:
+#      MQTT_BROKER_HOST: "mqtt"
+#      MQTT_BROKER_PORT: 1883
+#      MQTT_TOPIC: "agent_data_topic"
+#      DELAY: 1
+#      AGENT_ID: 5
+#    networks:
+#      mqtt_network:
+
   edge:
     container_name: edge_applevel
     build: ../Lab4/

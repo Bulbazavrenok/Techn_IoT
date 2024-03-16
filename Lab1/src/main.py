@@ -27,6 +27,7 @@ def connect_mqtt(broker: str, port: int) -> mqtt_client.Client:
 
 def publish(client: mqtt_client.Client, topic: str, datasource, delay: float) -> None:
     datasource.startReading()
+    print(f"Started publishing to topic `{topic}` with agent_id={config.AGENT_ID}")
     while True:
         list_of_data = datasource.read()
         time.sleep(delay)
@@ -35,7 +36,8 @@ def publish(client: mqtt_client.Client, topic: str, datasource, delay: float) ->
             result = client.publish(topic, msg)
             status = result[0]
             if status == 0:
-                print(f"Send `{msg}` to topic `{topic}`")
+                # print(f"Sent `{msg}` to topic `{topic}`")
+                # print(f"Sent data over MQTT to topic `{topic}`")
                 pass
             else:
                 print(f"Failed to send message to topic {topic}")
