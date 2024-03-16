@@ -3,7 +3,6 @@ from typing import List
 
 from fastapi import FastAPI
 from redis import Redis
-import paho.mqtt.client as mqtt
 
 from app.adapters.store_api_adapter import StoreApiAdapter
 from app.entities.processed_agent_data import ProcessedAgentData
@@ -12,9 +11,6 @@ from config import (
     REDIS_HOST,
     REDIS_PORT,
     BATCH_SIZE,
-    MQTT_TOPIC,
-    MQTT_BROKER_HOST,
-    MQTT_BROKER_PORT,
 )
 
 # Configure logging settings
@@ -47,50 +43,5 @@ async def save_processed_agent_data(processed_agent_data: ProcessedAgentData):
             )
             processed_agent_data_batch.append(processed_agent_data)
         store_adapter.save_data(processed_agent_data_batch=processed_agent_data_batch)
-    
+
     return {"status": "ok"}
-
-
-# # MQTT
-# client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION1)
-#
-# def on_connect(client, userdata, flags, rc):
-#     if rc == 0:
-#         logging.info("Connected to MQTT broker")
-#         client.subscribe(MQTT_TOPIC)
-#     else:
-#         logging.info(f"Failed to connect to MQTT broker with code: {rc}")
-#
-#
-# def on_message(client, userdata, msg):
-#     try:
-#         payload: str = msg.payload.decode("utf-8")
-#         # Create ProcessedAgentData instance with the received data
-#         processed_agent_data = ProcessedAgentData.model_validate_json(
-#             payload, strict=True
-#         )
-#
-#         redis_client.lpush(
-#             "processed_agent_data", processed_agent_data.model_dump_json()
-#         )
-#         processed_agent_data_batch: List[ProcessedAgentData] = []
-#         if redis_client.llen("processed_agent_data") >= BATCH_SIZE:
-#             for _ in range(BATCH_SIZE):
-#                 processed_agent_data = ProcessedAgentData.model_validate_json(
-#                     redis_client.lpop("processed_agent_data")
-#                 )
-#                 processed_agent_data_batch.append(processed_agent_data)
-#         store_adapter.save_data(processed_agent_data_batch=processed_agent_data_batch)
-#         return {"status": "ok"}
-#     except Exception as e:
-#         logging.info(f"Error processing MQTT message: {e}")
-#
-#
-# # Connect
-# client.on_connect = on_connect
-# client.on_message = on_message
-#
-# client.connect(MQTT_BROKER_HOST, MQTT_BROKER_PORT)
-#
-# # Start
-# client.loop_start()

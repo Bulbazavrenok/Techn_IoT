@@ -11,7 +11,7 @@ from main import app
 data = {
     "road_state": "good",
     "agent_data": {
-        "user_id": 5,
+        "agent_id": 5,
         "accelerometer": {
             "x": 4.0,
             "y": 5.0,

@@ -1,3 +1,5 @@
 /Lab1/docker/mosquitto/
 /Lab3/docker/mosquitto/
 /Lab4/docker/mosquitto/
+/combined/mosquitto/data/mosquitto.db
+/combined/mosquitto/log/mosquitto.log
