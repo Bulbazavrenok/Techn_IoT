@@ -1,14 +1,19 @@
 import json
+import logging
 from datetime import datetime
 from typing import Set, Dict, List, Optional
 
-from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect, Request, status
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
+
 from pydantic import BaseModel, field_validator
 from sqlalchemy import (create_engine, MetaData, Table, Column, Integer, String, Float, DateTime)
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.sql import select, insert, update, delete
 
 from config import (POSTGRES_HOST, POSTGRES_PORT, POSTGRES_DB, POSTGRES_USER, POSTGRES_PASSWORD)
+import sys
 
 # SQLAlchemy setup
 DATABASE_URL = f"postgresql+psycopg2://{POSTGRES_USER}:{POSTGRES_PASSWORD}@{POSTGRES_HOST}:{POSTGRES_PORT}/{POSTGRES_DB}"
@@ -21,7 +26,7 @@ processed_agent_data = Table(
     metadata,
     Column("id", Integer, primary_key=True, index=True, autoincrement=True),
     Column("road_state", String),
-    Column("user_id", Integer),
+    Column("agent_id", Integer),
     Column("x", Float),
     Column("y", Float),
     Column("z", Float),
@@ -43,7 +48,7 @@ class GpsData(BaseModel):
 
 
 class AgentData(BaseModel):
-    user_id: int
+    agent_id: int
     accelerometer: AccelerometerData
     gps: GpsData
     timestamp: datetime
@@ -70,7 +75,7 @@ class ProcessedAgentData(BaseModel):
 class ProcessedAgentDataInDB(BaseModel):
     id: Optional[int] = -1
     road_state: str
-    user_id: int
+    agent_id: int
 
     x: float
     y: float
@@ -81,8 +86,18 @@ class ProcessedAgentDataInDB(BaseModel):
     timestamp: datetime
 
 
+debug = False
+
 # FastAPI app setup
-app = FastAPI()
+app = FastAPI(debug=debug)
+
+if debug:
+    @app.exception_handler(RequestValidationError)
+    async def validation_exception_handler(request: Request, exc: RequestValidationError):
+        exc_str = f'{exc}'.replace('\n', ' ').replace('   ', ' ')
+        logging.error(f"{request}: {exc_str}")
+        content = {'status_code': 10422, 'message': exc_str, 'data': None}
+        return JSONResponse(content=content, status_code=status.HTTP_422_UNPROCESSABLE_ENTITY)
 
 # WebSocket subscriptions
 subscriptions: Dict[int, Set[WebSocket]] = {}
@@ -90,23 +105,23 @@ SessionLocal = sessionmaker(bind=engine)
 
 
 # FastAPI WebSocket endpoint
-@app.websocket("/ws/{user_id}")
-async def websocket_endpoint(websocket: WebSocket, user_id: int):
+@app.websocket("/ws/{agent_id}")
+async def websocket_endpoint(websocket: WebSocket, agent_id: int):
     await websocket.accept()
-    if user_id not in subscriptions:
-        subscriptions[user_id] = set()
-    subscriptions[user_id].add(websocket)
+    if agent_id not in subscriptions:
+        subscriptions[agent_id] = set()
+    subscriptions[agent_id].add(websocket)
     try:
         while True:
             await websocket.receive_text()
     except WebSocketDisconnect:
-        subscriptions[user_id].remove(websocket)
+        subscriptions[agent_id].remove(websocket)
 
 
 # Function to send data to subscribed users
-async def send_data_to_subscribers(user_id: int, data):
-    if user_id in subscriptions:
-        for websocket in subscriptions[user_id]:
+async def send_data_to_subscribers(agent_id: int, data):
+    if agent_id in subscriptions:
+        for websocket in subscriptions[agent_id]:
             await websocket.send_json(json.dumps(data))
 
 
@@ -118,21 +133,22 @@ async def create_processed_agent_data(data: List[ProcessedAgentData]):
         for item in data:
             road_state = item.road_state
             agent_data = item.agent_data
-            user_id = agent_data.user_id
+            agent_id = agent_data.agent_id
             accelerometer = agent_data.accelerometer
             gps = agent_data.gps
             timestamp = agent_data.timestamp
-            query = insert(processed_agent_data).values(road_state=road_state, user_id=user_id, x=accelerometer.x,
+            query = insert(processed_agent_data).values(road_state=road_state, agent_id=agent_id, x=accelerometer.x,
                                                         y=accelerometer.y, z=accelerometer.z, latitude=gps.latitude,
                                                         longitude=gps.longitude, timestamp=timestamp)
             db_agent_data.execute(query)
-            await send_data_to_subscribers(item.agent_data.user_id, item.json())
+            await send_data_to_subscribers(item.agent_data.agent_id, item.json())
         db_agent_data.commit()
     except Exception as e:
         db_agent_data.rollback()
         raise HTTPException(status_code=500, detail=str(e))
     finally:
         db_agent_data.close()
+
     return {"message": "Success! Data created and sent to subscribers"}
 
 
@@ -172,13 +188,13 @@ def update_processed_agent_data(processed_agent_data_id: int, data: ProcessedAge
         db_agent_data = SessionLocal()
         road_state = data.road_state
         agent_data = data.agent_data
-        user_id = agent_data.user_id
+        agent_id = agent_data.agent_id
         accelerometer = agent_data.accelerometer
         gps = agent_data.gps
         timestamp = agent_data.timestamp
         update_query = (update(processed_agent_data)
                         .where(processed_agent_data.c.id == processed_agent_data_id)
-                        .values(road_state=road_state, user_id=user_id, x=accelerometer.x, y=accelerometer.y,
+                        .values(road_state=road_state, agent_id=agent_id, x=accelerometer.x, y=accelerometer.y,
                                 z=accelerometer.z, latitude=gps.latitude, longitude=gps.longitude, timestamp=timestamp)
                         )
         db_agent_data.execute(update_query)

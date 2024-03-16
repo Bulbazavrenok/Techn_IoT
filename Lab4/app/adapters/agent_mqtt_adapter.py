@@ -42,8 +42,6 @@ class AgentMQTTAdapter(AgentGateway):
             # Store the agent_data in the database (you can send it to the data processing module)
             if not self.hub_gateway.save_data(processed_data):
                 logging.error("Hub is not available")
-            else:
-                logging.info("Data sent to hub") # FIXME remove this line
         except Exception as e:
             logging.info(f"Error processing MQTT message: {e}")
 

@@ -2,6 +2,7 @@ import json
 import logging
 from typing import List
 import requests
+
 from app.entities.processed_agent_data import ProcessedAgentData
 from app.interfaces.store_gateway import StoreGateway
 
@@ -15,10 +16,9 @@ class StoreApiAdapter(StoreGateway):
         serialized = [item.model_dump_json() for item in processed_agent_data_batch]
         data_dicts = [json.loads(item) for item in serialized]
 
-        # Make a POST request to the Store API endpoint with the processed data
         try:
             response = requests.post(f"{self.api_base_url}/processed_agent_data/", json=data_dicts)
             response.raise_for_status()
-            logging.info("Data stored")
+            logging.info("Data sent to Store API successfully")
         except requests.exceptions.RequestException as e:
             logging.error(f"Error response code while making post request to Store API: {e}")

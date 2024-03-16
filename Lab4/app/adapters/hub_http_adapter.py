@@ -18,12 +18,13 @@ class HubHttpAdapter(HubGateway):
         Returns:
             bool: True if the data is successfully saved, False otherwise.
         """
-        url = f"{self.api_base_url}/processed_agent_data/"
+        url = f"{self.api_base_url}/processed_agent_data"  # removed the last slash because 307 Redirect
 
         response = requests.post(url, data=processed_data.model_dump_json())
+
         if response.status_code != 200:
             logging.info(
-                f"Invalid Hub response\nData: {processed_data.model_dump_json()}\nResponse: {response}"
+                f"Invalid Hub response\nResponse: {response}"
             )
             return False
         return True
