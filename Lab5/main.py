@@ -28,14 +28,14 @@ class MapViewApp(App):
         """
         Встановлює необхідні маркери, викликає функцію для оновлення мапи
         """
-        self.df = pd.read_csv('sample_gps.csv')
+        self.df = pd.read_csv('gps.csv')
 
         layer = LineMapLayer()  # some # of layers
         self.l = layer
 
         self.mapview.add_layer(self.l, mode='scatter')
 
-        self.loop_thread = Clock.schedule_interval(self.update, timeout=3)
+        self.loop_thread = Clock.schedule_interval(self.update, timeout=0.5)
         # self.loop_thread = Clock.schedule_interval(self.update, timeout=1)
 
     def update(self, *args):
