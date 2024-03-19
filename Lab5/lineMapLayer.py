@@ -33,10 +33,8 @@ class LineMapLayer(MapLayer):
 
     def add_point(self, point):
         if self._coordinates is None:
-            #self._coordinates = [point]
             self._coordinates = []
         self._coordinates.append(point)
-        # self._coordinates = [self._coordinates[-1], point]
         self.invalidate_line_points()
         self.clear_and_redraw()
 
