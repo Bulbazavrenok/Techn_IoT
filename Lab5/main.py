@@ -18,9 +18,9 @@ class MapViewApp(App):
         self.i = 0
 
         self.tracked_agent_ids = [
-            # 0,
-            5,
-            66
+            0,
+            # 5,
+            # 66
         ]
 
     def build(self):
@@ -49,14 +49,10 @@ class MapViewApp(App):
                                                                                         data_dict))
                 csv_emulator_0.start()
 
-            # TODO uncomment this block to enable websocket
-
-            def debug_on_message(msg):
-                print(f'agent {agent_id} received message: {msg}')
+            # TODO uncomment the following block to enable websocket
 
             ws_handler = WebSocketHandler(agent_id)
             ws_handler.set_on_message(lambda data_dict: self.update_layer_with_data(ws_handler.agent_id, data_dict))
-            # ws_handler.set_on_message(debug_on_message)
             ws_handler.start()
 
         Clock.schedule_interval(self.update, 0.2)
