@@ -113,16 +113,23 @@ async def websocket_endpoint(websocket: WebSocket, agent_id: int):
     subscriptions[agent_id].add(websocket)
     try:
         while True:
-            await websocket.receive_text()
+            data = await websocket.receive_text()
+            print(f"Message text: {data}")
+
+            # pass
     except WebSocketDisconnect:
         subscriptions[agent_id].remove(websocket)
 
 
 # Function to send data to subscribed users
 async def send_data_to_subscribers(agent_id: int, data):
+    print("subs:", subscriptions)
     if agent_id in subscriptions:
         for websocket in subscriptions[agent_id]:
-            await websocket.send_json(json.dumps(data))
+            # await websocket.send_json(json.dumps(data))
+            data_over = data
+            await websocket.send_text(data_over)
+            print(f"Sent to {agent_id}: {data_over}")
 
 
 # FastAPI CRUDL endpoints

@@ -10,7 +10,7 @@ def process_agent_data(
     Parameters:
         agent_data (AgentData): Agent data that containing accelerometer, GPS, and timestamp.
     Returns:
-        processed_data_batch (ProcessedAgentData): Processed data containing the classified state of the road surface and agent data.
+        processed_data_batch (ProcessedAgentData): Processed data containing state of the road surface and agent data.
     """
     pad = ProcessedAgentData(road_state='default', agent_data=agent_data)
 
