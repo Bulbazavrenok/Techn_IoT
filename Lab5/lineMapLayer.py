@@ -7,7 +7,7 @@ from math import radians, log, tan, cos, pi
 
 
 class LineMapLayer(MapLayer):
-    def __init__(self, coordinates=None, color=[0, 0, 1, 1], width=2, **kwargs):
+    def __init__(self, coordinates=None, color=(0, 0, 1, 1), width=2, **kwargs):
         super().__init__(**kwargs)
         # if coordinates is None:
         #     coordinates = [[0, 0], [0, 0]]
@@ -28,13 +28,14 @@ class LineMapLayer(MapLayer):
     @coordinates.setter
     def coordinates(self, coordinates):
         self._coordinates = coordinates
-        self.invalidate_line_points()
-        self.clear_and_redraw()
+        self.update_layer()
 
     def add_point(self, point):
         if self._coordinates is None:
             self._coordinates = []
         self._coordinates.append(point)
+
+    def update_layer(self):
         self.invalidate_line_points()
         self.clear_and_redraw()
 
@@ -116,7 +117,7 @@ class LineMapLayer(MapLayer):
         vx, vy, vs = map_view.viewport_pos[0], map_view.viewport_pos[1], map_view.scale
 
         with self.canvas:
-            self.opacity = 0.5
+            # self.opacity = 0.5
             # Save the current coordinate space context
             PushMatrix()
 

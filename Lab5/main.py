@@ -1,11 +1,12 @@
-import time
-
 from kivy.app import App
 from kivy_garden.mapview import MapMarker, MapView
 from kivy.clock import Clock
 from lineMapLayer import LineMapLayer
 
-import pandas as pd
+from WebSocketHandler import WebSocketHandler
+from LiveCsvEmulator import LiveCsvEmulator
+
+from misc import line_colors
 
 
 class MapViewApp(App):
@@ -15,6 +16,10 @@ class MapViewApp(App):
         self.mapview: MapView
         self.loop_thread = None
         self.i = 0
+
+        self.tracked_agent_ids = [0,
+                                  5
+                                  ]
 
     def build(self):
         """
@@ -28,26 +33,37 @@ class MapViewApp(App):
         """
         Встановлює необхідні маркери, викликає функцію для оновлення мапи
         """
-        self.df = pd.read_csv('gps.csv')
 
-        layer = LineMapLayer()  # some # of layers
-        self.l = layer
+        self.layers = {}
+        for i, agent_id in enumerate(self.tracked_agent_ids):
+            layer = LineMapLayer(color=line_colors[i])
+            self.layers[agent_id] = layer
 
-        self.mapview.add_layer(self.l, mode='scatter')
+            self.mapview.add_layer(layer, mode='scatter')
 
-        self.loop_thread = Clock.schedule_interval(self.update, timeout=0.5)
-        # self.loop_thread = Clock.schedule_interval(self.update, timeout=1)
+            if agent_id == 0:
+                csv_emulator_0 = LiveCsvEmulator(agent_id=agent_id)
+                csv_emulator_0.set_action(lambda data_dict: self.update_layer_with_data(csv_emulator_0.agent_id,
+                                                                                        data_dict))
+                csv_emulator_0.start()
+
+            # TODO uncomment this block to enable websocket
+
+            # ws_handler = WebSocketHandler(agent_id)
+            # ws_handler.set_on_message(lambda data_dict: self.update_layer_with_data(ws_handler.agent_id, data_dict))
+            # ws_handler.start()
+
+
+
+        Clock.schedule_interval(self.update, 0.2)
+
+    def update_layer_with_data(self, agent_id, data_dict):
+        self.layers[agent_id].add_point((data_dict['agent_data']['gps']['latitude'],
+                                         data_dict['agent_data']['gps']['longitude']))
 
     def update(self, *args):
-        """
-        Викликається регулярно для оновлення мапи
-        """
-
-        self.l.add_point((self.df.iloc[self.i]['lat'], self.df.iloc[self.i]['lon']))
-        self.i += 1
-
-        if self.i >= len(self.df):
-            Clock.unschedule(self.loop_thread)
+        for layer in self.layers.values():
+            layer.update_layer()
 
     def check_road_quality(self):
         """
