@@ -20,7 +20,6 @@ class WebSocketHandler(Thread):
         self.on_error = on_error
         self.on_close = on_close
 
-
     def set_on_message(self, on_message: Callable[[str], None]):
         self.on_message = on_message
 
