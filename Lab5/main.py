@@ -19,7 +19,6 @@ class MapViewApp(App):
 
         self.tracked_agent_ids = [
             0,
-            # 5,
             # 66
         ]
 
@@ -53,6 +52,7 @@ class MapViewApp(App):
 
             ws_handler = WebSocketHandler(agent_id)
             ws_handler.set_on_message(lambda data_dict: self.update_layer_with_data(ws_handler.agent_id, data_dict))
+            # ws_handler.set_on_message(lambda data_dict: print(data_dict))
             ws_handler.start()
 
         Clock.schedule_interval(self.update, 0.2)
