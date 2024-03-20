@@ -3,6 +3,7 @@ import logging
 from datetime import datetime
 from typing import Set, Dict, List, Optional
 
+import asyncio
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect, Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
@@ -136,6 +137,7 @@ async def send_data_to_subscribers(agent_id: int, data):
 @app.post("/processed_agent_data/")
 async def create_processed_agent_data(data: List[ProcessedAgentData]):
     try:
+        data = sorted(data, key=lambda x: x.agent_data.timestamp)
         db_agent_data = SessionLocal()
         for item in data:
             road_state = item.road_state

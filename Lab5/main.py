@@ -17,9 +17,11 @@ class MapViewApp(App):
         self.loop_thread = None
         self.i = 0
 
-        self.tracked_agent_ids = [0,
-                                  5
-                                  ]
+        self.tracked_agent_ids = [
+            # 0,
+            5,
+            66
+        ]
 
     def build(self):
         """
@@ -49,13 +51,16 @@ class MapViewApp(App):
 
             # TODO uncomment this block to enable websocket
 
-            # ws_handler = WebSocketHandler(agent_id)
-            # ws_handler.set_on_message(lambda data_dict: self.update_layer_with_data(ws_handler.agent_id, data_dict))
-            # ws_handler.start()
+            def debug_on_message(msg):
+                print(f'agent {agent_id} received message: {msg}')
 
-
+            ws_handler = WebSocketHandler(agent_id)
+            ws_handler.set_on_message(lambda data_dict: self.update_layer_with_data(ws_handler.agent_id, data_dict))
+            # ws_handler.set_on_message(debug_on_message)
+            ws_handler.start()
 
         Clock.schedule_interval(self.update, 0.2)
+        print('App started')
 
     def update_layer_with_data(self, agent_id, data_dict):
         self.layers[agent_id].add_point((data_dict['agent_data']['gps']['latitude'],
