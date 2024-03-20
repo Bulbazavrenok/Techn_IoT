@@ -8,13 +8,11 @@ from threading import Thread
 
 
 class LiveCsvEmulator(Thread):
-    def __init__(self, agent_id: int):
+    def __init__(self, agent_id: int, on_message: Callable):
         super().__init__()
         self.agent_id = agent_id
         self.df = pd.read_csv(f'gps_{agent_id}.csv')
-
-    def set_action(self, action: Callable):
-        self.action = action
+        self.action = on_message
 
     def run(self):
         agent_id = self.agent_id
